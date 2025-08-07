@@ -1,0 +1,61 @@
+body {
+  background: #111;
+  color: white;
+  font-family: Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+}
+
+.container {
+  height: 460px;
+  width: 220px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 20px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.upper {
+  text-align: center;
+}
+
+#timeDisplay {
+  font-size: 40px;
+  margin-top: 10px;
+}
+
+.control {
+  margin: 10px 0;
+}
+
+.control-btns {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 5px;
+}
+
+.control-btns button {
+  padding: 5px 10px;
+  font-size: 18px;
+}
+
+.btn-group {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.btn-group button {
+  padding: 10px;
+  font-size: 16px;
+  flex: 1;
+  margin: 0 5px;
+}
