@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>To-Do App</title>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+  <div class="container">
+    <div class="left-pane">
+      <h2>TASK LIST</h2>
+      <p>Add tasks to your list by typing to the right and pressing enter. You may then view pending tasks below.</p>
+      <ul id="taskList"></ul>
+    </div>
+    <div class="right-pane">
+      <h2>I need to...</h2>
+      <form id="taskForm">
+        <input type="text" id="taskInput" placeholder="Enter task..." required />
+        <button type="submit">Add Task</button>
+      </form>
+    </div>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
