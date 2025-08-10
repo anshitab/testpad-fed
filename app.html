@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>API Sample – GitHub Repos</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    body {
+      margin: 0; min-height: 100dvh; display: grid; place-items: center;
+      background: #f3f5f7;
+    }
+    .container {
+      width: min(720px, 92vw);
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.08);
+      padding: 28px 24px;
+    }
+    h1 { margin: 0 0 18px; font-weight: 700; letter-spacing: .3px; }
+    form { display: flex; gap: 10px; margin-bottom: 16px; }
+    input[type="text"]{
+      flex: 1; padding: 12px 14px; border: 1px solid #cfd7df; border-radius: 10px;
+      outline: none; font-size: 16px;
+    }
+    button{
+      padding: 12px 16px; border: 0; border-radius: 10px; cursor: pointer;
+      background: #1f6feb; color: #fff; font-weight: 600;
+    }
+    button:disabled { opacity: .6; cursor: not-allowed; }
+    .status { margin: 6px 2px 12px; color: #555; font-size: 14px; min-height: 20px; }
+    ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+    li {
+      padding: 12px 14px; border: 1px solid #e6eaee; border-radius: 10px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    a { text-decoration: none; color: #0b5ed7; }
+    .repo-meta { font-size: 12px; color: #666; }
+    .empty { padding: 14px; color: #555; background: #f7f9fb; border-radius: 10px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>API Sample</h1>
+
+    <form id="form">
+      <input
+        id="username"
+        type="text"
+        placeholder="Github username..."
+        aria-label="GitHub username"
+        required
+      />
+      <button id="submitBtn" type="submit">Pull User Data</button>
+    </form>
+
+    <div class="status" id="status"></div>
+    <ul id="results"></ul>
+  </div>
+
+  <script>
+    const form = document.getElementById('form');
+    const usernameInput = document.getElementById('username');
+    const results = document.getElementById('results');
+    const statusEl = document.getElementById('status');
+    const submitBtn = document.getElementById('submitBtn');
+
+    function setStatus(msg) {
+      statusEl.textContent = msg || '';
+    }
+
+    function clearResults() {
+      results.innerHTML = '';
+    }
+
+    function renderEmpty(message) {
+      const div = document.createElement('div');
+      div.className = 'empty';
+      div.textContent = message;
+      results.replaceChildren(div);
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();                                 // User story 5
+      const username = usernameInput.value.trim();
+      if (!username) {
+        setStatus('Please enter a GitHub username.');
+        clearResults();
+        return;
+      }
+
+      setStatus('Loading repositories…');
+      clearResults();
+      submitBtn.disabled = true;
+      usernameInput.disabled = true;
+
+      try {
+        const url = `https://api.github.com/users/${encodeURIComponent(username)}/repos?per_page=100`; // User story 6
+        const res = await fetch(url, { headers: { 'Accept': 'application/vnd.github+json' } });
+
+        if (!res.ok) {
+          if (res.status === 404) {
+            renderEmpty('User not found.');
+            setStatus('');
+          } else {
+            renderEmpty(`Request failed with status ${res.status}.`);
+            setStatus('');
+          }
+          return;
+        }
+
+        const data = await res.json();                    // User story 7
+        if (!Array.isArray(data) || data.length === 0) {
+          renderEmpty('No public repositories to show.');
+          setStatus('');
+          return;
+        }
+
+        const frag = document.createDocumentFragment();
+        data.sort((a, b) => b.stargazers_count - a.stargazers_count);
+        data.forEach(repo => {
+          const li = document.createElement('li');
+
+          const left = document.createElement('div');
+          const name = document.createElement('a');       // User story 8
+          name.href = repo.html_url;
+          name.target = '_blank';
+          name.rel = 'noopener';
+          name.textContent = repo.name;
+
+          const meta = document.createElement('div');
+          meta.className = 'repo-meta';
+          meta.textContent = `${repo.private ? 'Private' : 'Public'} • ★ ${repo.stargazers_count} • Updated ${new Date(repo.updated_at).toLocaleDateString()}`;
+
+          left.appendChild(name);
+          left.appendChild(meta);
+
+          const right = document.createElement('div');
+          right.className = 'repo-meta';
+          right.textContent = repo.language || '';
+
+          li.appendChild(left);
+          li.appendChild(right);
+          frag.appendChild(li);
+        });
+
+        results.appendChild(frag);
+        setStatus(`${data.length} repositories found for "${username}".`);
+      } catch (err) {
+        renderEmpty('Network error. Please try again.');
+        setStatus('');
+      } finally {
+        submitBtn.disabled = false;
+        usernameInput.disabled = false;
+      }
+    });
+  </script>
+</b
