@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Simple Online Compiler</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    body { margin: 0; background: #f6f8fb; }
+    .wrap { max-width: 1100px; margin: 40px auto; padding: 0 16px; }
+    h1 { margin: 0 0 16px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .card { background: #fff; border: 1px solid #e6e9ee; border-radius: 12px; box-shadow: 0 6px 18px rgba(0,0,0,.06); }
+    .card .hd { padding: 12px 14px; border-bottom: 1px solid #edf0f5; font-weight: 600; }
+    .card .bd { padding: 12px; }
+    textarea, pre, select { width: 100%; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    textarea { min-height: 360px; resize: vertical; padding: 12px; border: 1px solid #d9dee7; border-radius: 8px; outline: none; }
+    pre { min-height: 360px; margin: 0; padding: 12px; background: #0b1020; color: #e6edf3; border-radius: 8px; overflow: auto; white-space: pre-wrap; }
+    .toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+    .toolbar select { padding: 8px 10px; border-radius: 8px; border: 1px solid #cfd7e2; background: #fff; }
+    .btn { padding: 10px 14px; border: 0; border-radius: 10px; background: #1f6feb; color: #fff; font-weight: 600; cursor: pointer; }
+    .btn:disabled { opacity: .6; cursor: not-allowed; }
+    .status { margin-top: 8px; font-size: 14px; color: #555; min-height: 20px; }
+    .muted { color: #9aa3ad; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Simple Online Compiler</h1>
+
+    <div class="grid">
+      <div class="card">
+        <div class="hd">Editor</div>
+        <div class="bd">
+          <div class="toolbar">
+            <label>
+              Language:
+              <select id="language">
+                <option value="0">Python</option>
+                <option value="4">JavaScript</option>
+                <option value="7">C</option>
+                <option value="77">C++</option>
+                <option value="8">Java</option>
+              </select>
+            </label>
+            <button class="btn" id="runBtn">Compile & Run</button>
+          </div>
+          <textarea id="code" spellcheck="false" placeholder="Write your code here..."></textarea>
+          <div class="status" id="status"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="hd">Output Console</div>
+        <div class="bd">
+          <pre id="console" aria-live="polite"><span class="muted">Output will appear here...</span></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const runBtn = document.getElementById('runBtn');
+    const codeEl = document.getElementById('code');
+    const langEl = document.getElementById('language');
+    const consoleEl = document.getElementById('console');
+    const statusEl = document.getElementById('status');
+
+    let pollTimer = null;
+
+    function setStatus(msg) { statusEl.textContent = msg || ''; }
+    function setConsole(text, isError = false) {
+      consoleEl.textContent = text || '';
+      consoleEl.style.background = isError ? '#200b0b' : '#0b1020';
+    }
+
+    async function submitCode() {
+      const code = codeEl.value;
+      const langId = langEl.value;
+
+      setConsole('');
+      setStatus('Submitting code...');
+      runBtn.disabled = true;
+      langEl.disabled = true;
+      codeEl.disabled = true;
+
+      try {
+        const res = await fetch('https://codequotient.com/api/executeCode', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, langId })
+        });
+
+        const payload = await res.json();
+
+        if (payload.error) {
+          setConsole(payload.error, true);
+          setStatus('Submission failed');
+          resetUI();
+          return;
+        }
+
+        if (payload.codeId) {
+          setStatus('Submitted. Fetching result...');
+          pollForResult(payload.codeId);
+        } else {
+          setConsole('Unexpected response', true);
+          setStatus('Submission failed');
+          resetUI();
+        }
+      } catch (e) {
+        setConsole('Network error. Try again.', true);
+        setStatus('');
+        resetUI();
+      }
+    }
+
+    function pollForResult(codeId) {
+      clearInterval(pollTimer);
+      pollTimer = setInterval(async () => {
+        try {
+          const res = await fetch(`https://codequotient.com/api/codeResult/${codeId}`);
+          const payload = await res.json();
+
+          if (!payload || !payload.data) return;
+
+          if (Object.keys(payload.data).length === 0) return;
+
+          clearInterval(pollTimer);
+
+          const { output = '', errors = '' } = payload.data;
+          if (errors && errors.trim()) {
+            setConsole(errors.trim(), true);
+            setStatus('Completed with errors');
+          } else {
+            setConsole(output || '(no output)');
+            setStatus('Completed');
+          }
+          resetUI();
+        } catch (e) {
+          clearInterval(pollTimer);
+          setConsole('Error while fetching result.', true);
+          setStatus('');
+          resetUI();
+        }
+      }, 2000);
+    }
+
+    function resetUI() {
+      runBtn.disabled = false;
+      langEl.disabled = false;
+      codeEl.disabled = false;
+    }
+
+    runBtn.addEventListener('click', submitCode);
+
+    const samples = {
+      0: 'print("Hello from Python")',
+      4: 'console.log("Hello from JavaScript")',
+      7: '#include <stdio.h>\nint main(){ printf("Hello from C"); return 0; }',
+      77: '#include <bits/stdc++.h>\nusing namespace std;\nint main(){ cout<<"Hello from C++"; return 0; }',
+      8: 'class Main{ public static void main(String[] args){ System.out.print("Hello from Java"); } }'
+    };
+    langEl.addEventListener('change', () => {
+      if (!codeEl.value.trim()) codeEl.value = samples[langEl.value] || '';
+    });
+  </script>
+</body>
+</html>
